@@ -2,6 +2,9 @@ import Interview from '../models/interviewModel.js';
 
 // @desc    Schedule an interview (Company Only)
 // @route   POST /api/interviews
+
+// @desc    Schedule an interview (Company Only) & Automatically Trigger Notification
+// @route   POST /api/interviews
 export const scheduleInterview = async (req, res) => {
     const { applicationId, jobId, seekerId, seekerEmail, scheduledDate, meetingLink } = req.body;
 
@@ -9,6 +12,7 @@ export const scheduleInterview = async (req, res) => {
         return res.status(400).json({ error: 'Please provide all required fields' });
     }
 
+    // 1. Save the interview in the database
     const interview = await Interview.create({
         applicationId, 
         jobId, 
@@ -19,8 +23,31 @@ export const scheduleInterview = async (req, res) => {
         companyId: req.user.userId 
     });
 
+    // 2. 🔥 THE AUTOMATIC TRIGGER 🔥
+    // Send a request to the Notification Service (Port 3005) behind the scenes
+    try {
+        const message = `Good news! A company has scheduled an interview with you on ${new Date(scheduledDate).toLocaleString()}.\nMeeting Link: ${meetingLink}`;
+        
+        await fetch('http://localhost:3005/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: seekerId,
+                userEmail: seekerEmail,
+                subject: 'New Interview Scheduled!',
+                message: message,
+                type: 'interview'
+            })
+        });
+        console.log('✅ Automatic notification sent successfully to Notification Service!');
+    } catch (error) {
+        console.error('❌ Failed to trigger automatic notification:', error.message);
+    }
+
     res.status(201).json(interview);
 };
+
+// ... (leave the rest of the functions exactly as they are) ...
 
 // @desc    Get all interviews for a specific user (Seeker Only)
 // @route   GET /api/interviews/my-interviews
