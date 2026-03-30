@@ -5,6 +5,9 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 
+import dns from "node:dns/promises";
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 dotenv.config();
 connectDB();
 
