@@ -1,0 +1,183 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Interview Service API",
+    "description": "API documentation for the Job Board's Interview Service. Handles scheduling, tracking, and automated email triggers for interviews.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3004",
+      "description": "Interview Service Local Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Company Actions",
+      "description": "Endpoints for companies to schedule and manage interviews"
+    },
+    {
+      "name": "Seeker Actions",
+      "description": "Endpoints for job seekers to view their scheduled interviews"
+    }
+  ],
+  "paths": {
+    "/api/interviews": {
+      "post": {
+        "tags": ["Company Actions"],
+        "summary": "Schedule an interview and trigger notification (Company Only)",
+        "description": "Saves the interview and automatically sends a trigger to the Notification Service (Port 3005) to email the job seeker.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["applicationId", "seekerEmail", "scheduledDate", "meetingLink"],
+                "properties": {
+                  "applicationId": { "type": "string", "example": "660c1a2b3c4d5e6f7a8b9c01" },
+                  "jobId": { "type": "string", "example": "660c1a2b3c4d5e6f7a8b9c02" },
+                  "seekerId": { "type": "string", "example": "660c1a2b3c4d5e6f7a8b9c03" },
+                  "seekerEmail": { "type": "string", "example": "student@example.com" },
+                  "scheduledDate": { "type": "string", "format": "date-time", "example": "2026-04-20T10:00:00Z" },
+                  "meetingLink": { "type": "string", "example": "https://zoom.us/j/123456789" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Interview scheduled successfully and notification sent" },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Not authorized, no token" }
+        }
+      }
+    },
+    "/api/interviews/my-interviews": {
+      "get": {
+        "tags": ["Seeker Actions"],
+        "summary": "Get all scheduled interviews for the logged-in user (Seeker Only)",
+        "responses": {
+          "200": { "description": "A list of the seeker's interviews sorted by date" }
+        }
+      }
+    },
+    "/api/interviews/company-interviews": {
+      "get": {
+        "tags": ["Company Actions"],
+        "summary": "Get all interviews scheduled by the logged-in company (Company Only)",
+        "responses": {
+          "200": { "description": "A list of the company's scheduled interviews sorted by date" }
+        }
+      }
+    },
+    "/api/interviews/cleanup/closed": {
+      "delete": {
+        "tags": ["Company Actions"],
+        "summary": "Bulk delete ALL closed interviews for the logged-in company (Company Only)",
+        "responses": {
+          "200": { "description": "Returns the number of deleted interviews" }
+        }
+      }
+    },
+    "/api/interviews/{id}": {
+      "get": {
+        "tags": ["Company Actions", "Seeker Actions"],
+        "summary": "Get interview details by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Detailed interview data" },
+          "403": { "description": "Not authorized to view this interview" },
+          "404": { "description": "Interview not found" }
+        }
+      },
+      "put": {
+        "tags": ["Company Actions"],
+        "summary": "Update interview time or meeting link (Company Only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scheduledDate": { "type": "string", "format": "date-time", "example": "2026-04-21T14:30:00Z" },
+                  "meetingLink": { "type": "string", "example": "https://meet.google.com/new-link" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Interview details updated successfully" },
+          "403": { "description": "Not authorized to update this interview" },
+          "404": { "description": "Interview not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Company Actions"],
+        "summary": "Delete a specific interview by ID (Company Only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Interview deleted successfully" },
+          "403": { "description": "Not authorized to delete this interview" },
+          "404": { "description": "Interview not found" }
+        }
+      }
+    },
+    "/api/interviews/{id}/status": {
+      "patch": {
+        "tags": ["Company Actions"],
+        "summary": "Update interview status (Company Only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["scheduled", "completed", "cancelled", "closed"], "example": "completed" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Interview status updated successfully" },
+          "400": { "description": "Invalid status provided" },
+          "403": { "description": "Not authorized to update this interview" },
+          "404": { "description": "Interview not found" }
+        }
+      }
+    }
+  }
+}
