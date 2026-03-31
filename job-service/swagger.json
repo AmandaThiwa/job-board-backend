@@ -1,0 +1,157 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Job Service API",
+    "description": "API documentation for the Job Board's Job Posting Service. Handles creating, retrieving, updating, and deleting jobs.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3002",
+      "description": "Job Service Local Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Public Jobs",
+      "description": "Endpoints accessible to anyone (viewing jobs)"
+    },
+    {
+      "name": "Company Job Management",
+      "description": "Protected endpoints for companies to manage their postings"
+    }
+  ],
+  "paths": {
+    "/api/jobs": {
+      "get": {
+        "tags": ["Public Jobs"],
+        "summary": "Get all active jobs",
+        "responses": {
+          "200": { "description": "A list of all active jobs sorted by creation date" }
+        }
+      },
+      "post": {
+        "tags": ["Company Job Management"],
+        "summary": "Create a new job (Company Only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "description", "companyName", "location"],
+                "properties": {
+                  "title": { "type": "string", "example": "Senior Node.js Developer" },
+                  "description": { "type": "string", "example": "Looking for a backend expert to build microservices." },
+                  "companyName": { "type": "string", "example": "Tech Innovators Sri Lanka" },
+                  "location": { "type": "string", "example": "Colombo (Hybrid)" },
+                  "salary": { "type": "number", "example": 250000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Job created successfully" },
+          "400": { "description": "Missing required fields" },
+          "401": { "description": "Not authorized, no token" },
+          "403": { "description": "Not authorized. Only companies can perform this action." }
+        }
+      }
+    },
+    "/api/jobs/myjobs": {
+      "get": {
+        "tags": ["Company Job Management"],
+        "summary": "Get all jobs posted by the logged-in company (Private Dashboard)",
+        "responses": {
+          "200": { "description": "A list of jobs belonging to the logged-in company" },
+          "401": { "description": "Not authorized, no token" }
+        }
+      }
+    },
+    "/api/jobs/company/{companyId}": {
+      "get": {
+        "tags": ["Public Jobs"],
+        "summary": "Get all active jobs for a specific company",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The unique ID of the company"
+          }
+        ],
+        "responses": {
+          "200": { "description": "A list of active jobs for this company" },
+          "404": { "description": "No active jobs found for this company" }
+        }
+      }
+    },
+    "/api/jobs/{id}": {
+      "get": {
+        "tags": ["Public Jobs"],
+        "summary": "Get a specific job by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Detailed job data" },
+          "404": { "description": "Job not found" }
+        }
+      },
+      "put": {
+        "tags": ["Company Job Management"],
+        "summary": "Update a job (Must be the company that created it or admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "example": "Lead Node.js Developer" },
+                  "salary": { "type": "number", "example": 300000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Job updated successfully" },
+          "403": { "description": "Not authorized to update this job posting" },
+          "404": { "description": "Job not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Company Job Management"],
+        "summary": "Delete a job (Must be the company that created it or admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Job removed successfully" },
+          "403": { "description": "Not authorized to delete this job posting" },
+          "404": { "description": "Job not found" }
+        }
+      }
+    }
+  }
+}
