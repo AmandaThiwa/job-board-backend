@@ -1,0 +1,164 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Application Service API",
+    "description": "API documentation for the Job Board's Application Service. Handles job applications, tracking, and status updates.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3003",
+      "description": "Application Service Local Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Job Seeker Actions",
+      "description": "Endpoints for seekers to apply and view their applications"
+    },
+    {
+      "name": "Company Management",
+      "description": "Endpoints for companies to review applications and update status"
+    },
+    {
+      "name": "Admin Management",
+      "description": "Endpoints for platform administrators"
+    }
+  ],
+  "paths": {
+    "/api/applications": {
+      "post": {
+        "tags": ["Job Seeker Actions"],
+        "summary": "Apply for a job (Seeker Only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["jobId", "companyId", "seekerEmail", "resumeLink"],
+                "properties": {
+                  "jobId": { "type": "string", "example": "660c1a2b3c4d5e6f7a8b9c01" },
+                  "companyId": { "type": "string", "example": "660c1a2b3c4d5e6f7a8b9c02" },
+                  "seekerEmail": { "type": "string", "example": "johndoe@student.com" },
+                  "resumeLink": { "type": "string", "example": "https://drive.google.com/resume.pdf" },
+                  "coverLetter": { "type": "string", "example": "I am highly interested in this role!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Application submitted successfully" },
+          "400": { "description": "Missing required fields or already applied" },
+          "401": { "description": "Not authorized, no token" }
+        }
+      },
+      "get": {
+        "tags": ["Admin Management"],
+        "summary": "Get all applications across the platform (Admin Only)",
+        "responses": {
+          "200": { "description": "A list of all applications" },
+          "403": { "description": "Not authorized, Admin only" }
+        }
+      }
+    },
+    "/api/applications/my-applications": {
+      "get": {
+        "tags": ["Job Seeker Actions"],
+        "summary": "Get a seeker's own applications (Seeker Only)",
+        "responses": {
+          "200": { "description": "A list of the logged-in user's applications" }
+        }
+      }
+    },
+    "/api/applications/job/{jobId}": {
+      "get": {
+        "tags": ["Company Management"],
+        "summary": "Get all applications for a specific job (Company Only)",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The unique ID of the job posting"
+          }
+        ],
+        "responses": {
+          "200": { "description": "A list of applications for this job" },
+          "403": { "description": "Not authorized to view these applications" }
+        }
+      }
+    },
+    "/api/applications/{id}": {
+      "get": {
+        "tags": ["Job Seeker Actions", "Company Management"],
+        "summary": "Get application by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Detailed application data" },
+          "403": { "description": "Not authorized to view this application" },
+          "404": { "description": "Application not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Job Seeker Actions", "Admin Management"],
+        "summary": "Delete an application (Seeker or Admin)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Application deleted successfully" },
+          "403": { "description": "Not authorized to delete this application" },
+          "404": { "description": "Application not found" }
+        }
+      }
+    },
+    "/api/applications/{id}/status": {
+      "patch": {
+        "tags": ["Company Management"],
+        "summary": "Update application status (Company Only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string", "enum": ["accepted", "rejected"], "example": "accepted" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Application status updated successfully" },
+          "400": { "description": "Status must be accepted or rejected" },
+          "403": { "description": "Not authorized to update this application" },
+          "404": { "description": "Application not found" }
+        }
+      }
+    }
+  }
+}
