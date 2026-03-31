@@ -3,61 +3,67 @@ import cors from 'cors';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import dotenv from 'dotenv';
 
+// --- Swagger Imports ---
+import swaggerUi from 'swagger-ui-express';
+import fs from 'fs';
+import path from 'path';
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Enable CORS so the frontend can communicate with the gateway and send cookies
 app.use(cors({
     origin: true, 
     credentials: true 
 }));
 
-// --- Microservice Routing (v3.0.5 Best Practice) ---
+// --- Setup Swagger UI ---
+// Read the JSON file synchronously using fs to avoid ES Module import warnings
+const swaggerDocument = JSON.parse(
+    fs.readFileSync(path.resolve('./swagger.json'), 'utf-8')
+);
 
-// 1. Route to Auth Service
+// Serve the Swagger UI on the /api-docs route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// --- Microservice Routing ---
+
 app.use(createProxyMiddleware({ 
     target: 'http://localhost:3001', 
     changeOrigin: true,
-    pathFilter: '/api/auth' // <--- This safely filters the route without breaking the URL!
+    pathFilter: '/api/auth' 
 }));
 
-// 2. Route to Job Service
 app.use(createProxyMiddleware({ 
     target: 'http://localhost:3002', 
     changeOrigin: true,
     pathFilter: '/api/jobs'
 }));
 
-// 3. Route to Application Service
 app.use(createProxyMiddleware({ 
     target: 'http://localhost:3003', 
     changeOrigin: true,
     pathFilter: '/api/applications'
 }));
 
-// 4. Route to Interview Service
 app.use(createProxyMiddleware({ 
     target: 'http://localhost:3004', 
     changeOrigin: true,
     pathFilter: '/api/interviews'
 }));
 
-// 5. Route to Notification Service
 app.use(createProxyMiddleware({ 
     target: 'http://localhost:3005', 
     changeOrigin: true,
     pathFilter: '/api/notifications'
 }));
 
-// Base route to check if gateway is alive
 app.get('/', (req, res) => {
-    res.send('API Gateway is running smoothly! 🚀');
+    res.send('API Gateway is running smoothly! 🚀 Check /api-docs for Swagger UI.');
 });
 
-// Start the Gateway
 app.listen(PORT, () => {
     console.log(`🚀 API Gateway is running on http://localhost:${PORT}`);
-    console.log(`➡️  Routing traffic for Auth, Jobs, Applications, Interviews, and Notifications`);
+    console.log(`📄 Swagger Documentation available at http://localhost:${PORT}/api-docs`);
 });

@@ -1,0 +1,395 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Job Board API Gateway",
+    "description": "Unified API documentation for the Job Board Microservices Architecture. Includes full CRUD for Auth, Jobs, Applications, Interviews, and Notifications.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "API Gateway Server"
+    }
+  ],
+  "tags": [
+    { "name": "Auth Service", "description": "User management, registration, and authentication" },
+    { "name": "Job Service", "description": "Job posting, updating, and retrieval" },
+    { "name": "Application Service", "description": "Applying for jobs, tracking, and updating status" },
+    { "name": "Interview Service", "description": "Scheduling, managing, and updating interviews" },
+    { "name": "Notification Service", "description": "Email and dashboard notifications" }
+  ],
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "tags": ["Auth Service"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "password123" },
+                  "role": { "type": "string", "enum": ["seeker", "company", "admin"], "example": "seeker" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "User created" }, "400": { "description": "Bad Request" } }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth Service"],
+        "summary": "Authenticate user and get cookie",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Login successful" }, "401": { "description": "Invalid credentials" } }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth Service"],
+        "summary": "Logout user and clear cookie",
+        "responses": { "200": { "description": "Logged out successfully" } }
+      }
+    },
+    "/api/auth/users": {
+      "get": {
+        "tags": ["Auth Service"],
+        "summary": "Get all users (Admin only)",
+        "responses": { "200": { "description": "List of all users" } }
+      }
+    },
+    "/api/auth/users/{id}": {
+      "get": {
+        "tags": ["Auth Service"],
+        "summary": "Get user by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "User details" }, "404": { "description": "User not found" } }
+      },
+      "put": {
+        "tags": ["Auth Service"],
+        "summary": "Update user profile",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "User updated" }, "403": { "description": "Not authorized" } }
+      },
+      "delete": {
+        "tags": ["Auth Service"],
+        "summary": "Delete user",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "User deleted" } }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "tags": ["Job Service"],
+        "summary": "Get all active jobs (Public)",
+        "responses": { "200": { "description": "List of jobs" } }
+      },
+      "post": {
+        "tags": ["Job Service"],
+        "summary": "Create a new job (Company Only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "example": "Software Engineer" },
+                  "description": { "type": "string", "example": "Great role." },
+                  "companyName": { "type": "string", "example": "Tech Corp" },
+                  "location": { "type": "string", "example": "Colombo" },
+                  "salary": { "type": "number", "example": 150000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Job created" } }
+      }
+    },
+    "/api/jobs/myjobs": {
+      "get": {
+        "tags": ["Job Service"],
+        "summary": "Get all jobs posted by the logged-in company",
+        "responses": { "200": { "description": "List of company jobs" } }
+      }
+    },
+    "/api/jobs/company/{companyId}": {
+      "get": {
+        "tags": ["Job Service"],
+        "summary": "Get all jobs for a specific company ID (Public)",
+        "parameters": [{ "name": "companyId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Jobs found" } }
+      }
+    },
+    "/api/jobs/{id}": {
+      "get": {
+        "tags": ["Job Service"],
+        "summary": "Get job by ID (Public)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Job details" } }
+      },
+      "put": {
+        "tags": ["Job Service"],
+        "summary": "Update a job (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object" } } } },
+        "responses": { "200": { "description": "Job updated" } }
+      },
+      "delete": {
+        "tags": ["Job Service"],
+        "summary": "Delete a job (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Job deleted" } }
+      }
+    },
+    "/api/applications": {
+      "get": {
+        "tags": ["Application Service"],
+        "summary": "Get all applications (Admin Only)",
+        "responses": { "200": { "description": "List of all applications" } }
+      },
+      "post": {
+        "tags": ["Application Service"],
+        "summary": "Apply for a job (Seeker Only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "jobId": { "type": "string" },
+                  "companyId": { "type": "string" },
+                  "seekerEmail": { "type": "string" },
+                  "resumeLink": { "type": "string" },
+                  "coverLetter": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Applied successfully" } }
+      }
+    },
+    "/api/applications/my-applications": {
+      "get": {
+        "tags": ["Application Service"],
+        "summary": "Get a seeker's own applications (Seeker Only)",
+        "responses": { "200": { "description": "List of user's applications" } }
+      }
+    },
+    "/api/applications/job/{jobId}": {
+      "get": {
+        "tags": ["Application Service"],
+        "summary": "Get all applications for a specific job (Company Only)",
+        "parameters": [{ "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "List of applications for job" } }
+      }
+    },
+    "/api/applications/{id}": {
+      "get": {
+        "tags": ["Application Service"],
+        "summary": "Get application by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Application details" } }
+      },
+      "delete": {
+        "tags": ["Application Service"],
+        "summary": "Delete an application (Seeker or Admin)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted successfully" } }
+      }
+    },
+    "/api/applications/{id}/status": {
+      "patch": {
+        "tags": ["Application Service"],
+        "summary": "Update application status (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "status": { "type": "string", "enum": ["accepted", "rejected"] } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Status updated" } }
+      }
+    },
+    "/api/interviews": {
+      "post": {
+        "tags": ["Interview Service"],
+        "summary": "Schedule an interview (Company Only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "applicationId": { "type": "string" },
+                  "jobId": { "type": "string" },
+                  "seekerId": { "type": "string" },
+                  "seekerEmail": { "type": "string" },
+                  "scheduledDate": { "type": "string", "format": "date-time" },
+                  "meetingLink": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Scheduled and notified" } }
+      }
+    },
+    "/api/interviews/my-interviews": {
+      "get": {
+        "tags": ["Interview Service"],
+        "summary": "Get all interviews for a specific user (Seeker Only)",
+        "responses": { "200": { "description": "List of seeker interviews" } }
+      }
+    },
+    "/api/interviews/company-interviews": {
+      "get": {
+        "tags": ["Interview Service"],
+        "summary": "Get all interviews for a specific company (Company Only)",
+        "responses": { "200": { "description": "List of company interviews" } }
+      }
+    },
+    "/api/interviews/cleanup/closed": {
+      "delete": {
+        "tags": ["Interview Service"],
+        "summary": "Delete ALL closed interviews for the logged-in company",
+        "responses": { "200": { "description": "Bulk deletion successful" } }
+      }
+    },
+    "/api/interviews/{id}": {
+      "get": {
+        "tags": ["Interview Service"],
+        "summary": "Get interview by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Interview details" } }
+      },
+      "put": {
+        "tags": ["Interview Service"],
+        "summary": "Update interview details (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "scheduledDate": { "type": "string", "format": "date-time" }, "meetingLink": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated successfully" } }
+      },
+      "delete": {
+        "tags": ["Interview Service"],
+        "summary": "Delete specific interview by ID (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted successfully" } }
+      }
+    },
+    "/api/interviews/{id}/status": {
+      "patch": {
+        "tags": ["Interview Service"],
+        "summary": "Update interview status (Company Only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "status": { "type": "string", "enum": ["scheduled", "completed", "cancelled", "closed"] } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Status updated" } }
+      }
+    },
+    "/api/notifications": {
+      "post": {
+        "tags": ["Notification Service"],
+        "summary": "Create a notification & send email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": { "type": "string" },
+                  "userEmail": { "type": "string" },
+                  "subject": { "type": "string" },
+                  "message": { "type": "string" },
+                  "type": { "type": "string", "example": "general" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created and sent" } }
+      },
+      "get": {
+        "tags": ["Notification Service"],
+        "summary": "Get all notifications for the logged-in user",
+        "responses": { "200": { "description": "List of notifications" } }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "tags": ["Notification Service"],
+        "summary": "Mark a notification as read",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Marked as read" } }
+      }
+    },
+    "/api/notifications/{id}": {
+      "delete": {
+        "tags": ["Notification Service"],
+        "summary": "Delete a notification",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted successfully" } }
+      }
+    }
+  }
+}
