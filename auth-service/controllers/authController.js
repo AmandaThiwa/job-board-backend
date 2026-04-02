@@ -1,10 +1,31 @@
 import User from '../models/userModel.js';
 import generateToken from '../utils/generateToken.js';
 
+// Helper function to validate MongoDB Object IDs
+const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+
+// Helper function to validate Email format
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 // @desc    Register a new user
 // @route   POST /api/auth/signup
 export const signupUser = async (req, res) => {
     const { email, password, role } = req.body;
+
+    // --- VALIDATION START ---
+    if (!email || !password || !role) {
+        return res.status(400).json({ error: 'Please provide email, password, and role' });
+    }
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ error: 'Please provide a valid email address' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    if (!['seeker', 'company', 'admin'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role. Must be seeker, company, or admin' });
+    }
+    // --- VALIDATION END ---
 
     // Check if user already exists with this email
     const userExists = await User.findOne({ email });
@@ -26,6 +47,12 @@ export const signupUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     
+    // --- VALIDATION START ---
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Please provide email and password' });
+    }
+    // --- VALIDATION END ---
+
     // Find user by email
     const user = await User.findOne({ email });
 
@@ -54,6 +81,12 @@ export const getUsers = async (req, res) => {
 // @desc    Get user by ID
 // @route   GET /api/auth/users/:id
 export const getUserById = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+    // --- VALIDATION END ---
+
     const user = await User.findById(req.params.id).select('-password');
     if (user) {
         res.json(user);
@@ -65,6 +98,18 @@ export const getUserById = async (req, res) => {
 // @desc    Update user profile
 // @route   PUT /api/auth/users/:id
 export const updateUser = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+    if (req.body.email && !isValidEmail(req.body.email)) {
+        return res.status(400).json({ error: 'Please provide a valid email address' });
+    }
+    if (req.body.password && req.body.password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    // --- VALIDATION END ---
+
     // Only allow user to update their own profile, or an admin to update anyone
     if (req.user._id.toString() !== req.params.id && req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Not authorized to update this user' });
@@ -88,6 +133,12 @@ export const updateUser = async (req, res) => {
 // @desc    Delete user
 // @route   DELETE /api/auth/users/:id
 export const deleteUser = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid User ID format' });
+    }
+    // --- VALIDATION END ---
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
