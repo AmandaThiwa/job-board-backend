@@ -1,25 +1,49 @@
 import Interview from '../models/interviewModel.js';
 
-// @desc    Schedule an interview (Company Only)
-// @route   POST /api/interviews
+// Helper functions for validation
+const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidURL = (string) => {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
+};
+const isValidDate = (date) => !isNaN(Date.parse(date));
 
 // @desc    Schedule an interview (Company Only) & Automatically Trigger Notification
 // @route   POST /api/interviews
 export const scheduleInterview = async (req, res) => {
     const { applicationId, jobId, seekerId, seekerEmail, scheduledDate, meetingLink } = req.body;
 
-    if (!applicationId || !seekerEmail || !scheduledDate || !meetingLink) {
+    // --- VALIDATION START ---
+    if (!applicationId || !jobId || !seekerId || !seekerEmail || !scheduledDate || !meetingLink) {
         return res.status(400).json({ error: 'Please provide all required fields' });
     }
+    if (!isValidObjectId(applicationId) || !isValidObjectId(jobId) || !isValidObjectId(seekerId)) {
+        return res.status(400).json({ error: 'Invalid ID format provided for application, job, or seeker' });
+    }
+    if (!isValidEmail(seekerEmail)) {
+        return res.status(400).json({ error: 'Please provide a valid seeker email address' });
+    }
+    if (!isValidURL(meetingLink)) {
+        return res.status(400).json({ error: 'Please provide a valid URL for the meeting link' });
+    }
+    if (!isValidDate(scheduledDate)) {
+        return res.status(400).json({ error: 'Please provide a valid scheduled date' });
+    }
+    // --- VALIDATION END ---
 
     // 1. Save the interview in the database
     const interview = await Interview.create({
         applicationId, 
         jobId, 
         seekerId, 
-        seekerEmail, 
+        seekerEmail: seekerEmail.trim(), 
         scheduledDate, 
-        meetingLink,
+        meetingLink: meetingLink.trim(),
         companyId: req.user.userId 
     });
 
@@ -47,8 +71,6 @@ export const scheduleInterview = async (req, res) => {
     res.status(201).json(interview);
 };
 
-// ... (leave the rest of the functions exactly as they are) ...
-
 // @desc    Get all interviews for a specific user (Seeker Only)
 // @route   GET /api/interviews/my-interviews
 export const getSeekerInterviews = async (req, res) => {
@@ -66,6 +88,12 @@ export const getCompanyInterviews = async (req, res) => {
 // @desc    Get interview by ID
 // @route   GET /api/interviews/:id
 export const getInterviewById = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Interview ID format' });
+    }
+    // --- VALIDATION END ---
+
     const interview = await Interview.findById(req.params.id);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
@@ -79,6 +107,18 @@ export const getInterviewById = async (req, res) => {
 // @desc    Update interview details like time/link (Company Only)
 // @route   PUT /api/interviews/:id
 export const updateInterview = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Interview ID format' });
+    }
+    if (req.body.meetingLink && !isValidURL(req.body.meetingLink)) {
+        return res.status(400).json({ error: 'Please provide a valid URL for the meeting link' });
+    }
+    if (req.body.scheduledDate && !isValidDate(req.body.scheduledDate)) {
+        return res.status(400).json({ error: 'Please provide a valid scheduled date' });
+    }
+    // --- VALIDATION END ---
+
     const interview = await Interview.findById(req.params.id);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
@@ -96,10 +136,15 @@ export const updateInterview = async (req, res) => {
 // @desc    Update interview status (Company Only)
 // @route   PATCH /api/interviews/:id/status
 export const updateInterviewStatus = async (req, res) => {
-    const { status } = req.body;
-    if (!['scheduled', 'completed', 'cancelled', 'closed'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status' });
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Interview ID format' });
     }
+    const { status } = req.body;
+    if (!status || !['scheduled', 'completed', 'cancelled', 'closed'].includes(status.trim().toLowerCase())) {
+        return res.status(400).json({ error: 'Invalid status. Must be scheduled, completed, cancelled, or closed' });
+    }
+    // --- VALIDATION END ---
 
     const interview = await Interview.findById(req.params.id);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
@@ -108,7 +153,7 @@ export const updateInterviewStatus = async (req, res) => {
         return res.status(403).json({ error: 'Not authorized' });
     }
 
-    interview.status = status;
+    interview.status = status.trim().toLowerCase();
     const updatedInterview = await interview.save();
     res.json(updatedInterview);
 };
@@ -116,6 +161,12 @@ export const updateInterviewStatus = async (req, res) => {
 // @desc    Delete specific interview by ID (Company Only)
 // @route   DELETE /api/interviews/:id
 export const deleteInterview = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Interview ID format' });
+    }
+    // --- VALIDATION END ---
+
     const interview = await Interview.findById(req.params.id);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
 
