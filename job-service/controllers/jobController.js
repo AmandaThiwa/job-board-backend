@@ -1,5 +1,8 @@
 import Job from '../models/jobModel.js';
 
+// Helper function to validate MongoDB Object IDs
+const isValidObjectId = (id) => /^[0-9a-fA-F]{24}$/.test(id);
+
 // @desc    Get all active jobs (Public)
 // @route   GET /api/jobs
 export const getJobs = async (req, res) => {
@@ -10,6 +13,12 @@ export const getJobs = async (req, res) => {
 // @desc    Get job by ID (Public)
 // @route   GET /api/jobs/:id
 export const getJobById = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+    // --- VALIDATION END ---
+
     const job = await Job.findById(req.params.id);
     
     if (job) {
@@ -24,16 +33,26 @@ export const getJobById = async (req, res) => {
 export const createJob = async (req, res) => {
     const { title, description, companyName, location, salary } = req.body;
 
+    // --- VALIDATION START ---
     if (!title || !description || !companyName || !location) {
         return res.status(400).json({ error: 'Please provide all required fields' });
     }
+    // Prevent empty strings or just spaces
+    if (title.trim() === '' || description.trim() === '' || companyName.trim() === '' || location.trim() === '') {
+        return res.status(400).json({ error: 'Fields cannot be empty spaces' });
+    }
+    // Check if salary is provided and valid
+    if (salary !== undefined && (isNaN(salary) || Number(salary) < 0)) {
+        return res.status(400).json({ error: 'Salary must be a valid positive number' });
+    }
+    // --- VALIDATION END ---
 
     const job = await Job.create({
-        title,
-        description,
-        companyName,
-        location,
-        salary,
+        title: title.trim(),
+        description: description.trim(),
+        companyName: companyName.trim(),
+        location: location.trim(),
+        salary: salary ? Number(salary) : undefined,
         companyId: req.user.userId // Automatically attached from the JWT cookie!
     });
 
@@ -43,6 +62,16 @@ export const createJob = async (req, res) => {
 // @desc    Update a job (Company Only - Must be the owner)
 // @route   PUT /api/jobs/:id
 export const updateJob = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+    // If salary is being updated, ensure it's a valid number
+    if (req.body.salary !== undefined && (isNaN(req.body.salary) || Number(req.body.salary) < 0)) {
+        return res.status(400).json({ error: 'Salary must be a valid positive number' });
+    }
+    // --- VALIDATION END ---
+
     const job = await Job.findById(req.params.id);
 
     if (!job) {
@@ -61,6 +90,12 @@ export const updateJob = async (req, res) => {
 // @desc    Delete a job (Company Only - Must be the owner)
 // @route   DELETE /api/jobs/:id
 export const deleteJob = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({ error: 'Invalid Job ID format' });
+    }
+    // --- VALIDATION END ---
+
     const job = await Job.findById(req.params.id);
 
     if (!job) {
@@ -79,6 +114,12 @@ export const deleteJob = async (req, res) => {
 // @desc    Get all jobs for a specific company (Public)
 // @route   GET /api/jobs/company/:companyId
 export const getJobsByCompanyId = async (req, res) => {
+    // --- VALIDATION START ---
+    if (!isValidObjectId(req.params.companyId)) {
+        return res.status(400).json({ error: 'Invalid Company ID format' });
+    }
+    // --- VALIDATION END ---
+
     // Find jobs matching the company ID from the URL parameter
     const jobs = await Job.find({ companyId: req.params.companyId, isActive: true }).sort({ createdAt: -1 });
     
